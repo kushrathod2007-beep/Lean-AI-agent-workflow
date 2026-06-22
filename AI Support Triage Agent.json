@@ -1,0 +1,227 @@
+{
+  "name": "AI Support Triage Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "support-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "62a47329-cfcb-4db7-b588-091e7a257847",
+      "name": "Webhook",
+      "webhookId": "f8854149-7941-46d6-be5b-cf6e2a9d7fbf"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a customer support triage assistant.\n\nAnalyze the customer message and return ONLY valid JSON.\n\n{\n  \"category\": \"Billing|Refund|Technical|General\",\n  \"priority\": \"High|Medium|Low\",\n  \"summary\": \"Short summary\",\n  \"suggested_reply\": \"Reply to customer\"\n}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "30017b43-e517-4929-80bf-09c39805edee",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        208
+      ],
+      "id": "5f1bab10-fdf1-4cdc-8447-5469961e7f15",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "q4zYstQ3VTAoNQJd",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eeedc978-638c-41e9-8a8a-70a4c1dd7ef5",
+              "leftValue": "={{$json.category}}",
+              "rightValue": "Refund",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        496,
+        0
+      ],
+      "id": "0f635a17-1f97-4fed-ba9c-590033b72a91",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "kushrathod2007@gmail.com",
+        "subject": "=Support Ticket - {{$json.category}}",
+        "message": "=Customer Message:  {{$json.summary}}  Category: {{$json.category}}  Priority: {{$json.priority}}  Suggested Reply: {{$json.suggested_reply}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        0
+      ],
+      "id": "c6f96414-a31e-4901-bedd-8df9260ba58e",
+      "name": "Send a message",
+      "webhookId": "16388f02-b9fa-4602-90ea-f3ffdd30aeb7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lSAt39NOgKBqYdt2",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"category\": \"{{$json.category}}\",\n  \"priority\": \"{{$json.priority}}\",\n  \"reply\": \"{{$json.suggested_reply}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        768,
+        240
+      ],
+      "id": "33efc864-ad45-42b1-a759-5d67750813c4",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {
+    "Respond to Webhook": [
+      {
+        "json": {
+          "name": "First item",
+          "code": 1
+        }
+      },
+      {
+        "json": {
+          "name": "Second item",
+          "code": 2
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a7f59d4b-cddd-4ff6-9ee4-4058b3a98927",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3f886bf2b338170e66b5310ba35f8191b0ad0d7c8d2f73767e94619d26bd6bd9"
+  },
+  "nodeGroups": [],
+  "id": "KryVt85jNFhhBIYE",
+  "tags": []
+}
